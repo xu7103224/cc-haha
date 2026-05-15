@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# cc - Claude Code 统一入口 (bash 版本，转发到 cc.ps1)
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 构建 PowerShell 参数
+PS_ARGS="-File \"${SCRIPT_DIR}/cc.ps1\""
+
+for arg in "$@"; do
+    # Convert --param-name to -ParamName for PowerShell compatibility
+    if [[ "$arg" == --* ]]; then
+        # Strip leading --, capitalize first char, keep rest as-is
+        param_name="${arg#--}"
+        # Handle kebab-case: --auto-unchained → -AutoUnchained
+        IFS='-' read -ra parts <<< "$param_name"
+        pscase=""
+        for part in "${parts[@]}"; do
+            pscase="${pscase}$(tr '[:lower:]' '[:upper:]' <<< "${part:0:1}")${part:1}"
+        done
+        arg="-$pscase"
+    fi
+    PS_ARGS="$PS_ARGS '$arg'"
+done
+
+exec powershell -ExecutionPolicy Bypass $PS_ARGS

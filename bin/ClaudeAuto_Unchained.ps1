@@ -1,22 +1,36 @@
-# ClaudeAuto_Unchained.ps1
-# 警告：所有动作自动执行，完全没有确认！
+# ======================================================
+# ClaudeAuto_Unchained.ps1 (no confirmations at all)
+# WARNING: all actions execute automatically!
+# ======================================================
 
-$ProjectDir  = "D:\MyGameProject"
-$TaskFile    = "$ProjectDir\automation_tasks.txt"
-$LogDir      = "$ProjectDir\claude_logs"
+param(
+    [string]$ProjectDir = (Get-Location).Path,
+    [string]$TaskFile,
+    [string]$LogDir
+)
+
+if (-not $TaskFile) { $TaskFile = Join-Path $ProjectDir "automation_tasks.txt" }
+if (-not $LogDir)   { $LogDir   = Join-Path $ProjectDir "claude_logs" }
 
 if (!(Test-Path $ProjectDir)) {
-    Write-Host "错误：项目目录不存在 $ProjectDir" -ForegroundColor Red
+    Write-Host "ERROR: project dir not found $ProjectDir" -ForegroundColor Red
     exit 1
 }
 
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
-if (!(Test-Path $TaskFile)) { New-Item -ItemType File -Path $TaskFile | Out-Null }
 
-Write-Host "🔥 裸奔模式已启动，所有操作自动执行！请确保你清楚后果！" -ForegroundColor Red
+if (!(Test-Path $TaskFile)) {
+    New-Item -ItemType File -Path $TaskFile | Out-Null
+}
+
+Write-Host "UNCAGED mode started (all actions auto-execute!)" -ForegroundColor Red
+Write-Host "  ProjectDir = $ProjectDir" -ForegroundColor Red
+Write-Host "  TaskFile   = $TaskFile"   -ForegroundColor Red
+Write-Host "  LogDir     = $LogDir"     -ForegroundColor Red
 
 while ($true) {
-    if ((Test-Path $TaskFile) -and ((Get-Content $TaskFile -Raw).Trim() -ne "")) {
+    $content = Get-Content $TaskFile -Raw -ErrorAction SilentlyContinue
+    if ($content -and $content.Trim() -ne "") {
         $lines = Get-Content $TaskFile
         $task = $lines[0]
         $lines[1..$lines.Length] | Set-Content $TaskFile -Encoding UTF8
@@ -24,7 +38,7 @@ while ($true) {
         $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
         $logFile = "$LogDir\task_$timestamp.log"
 
-        Write-Host "💀 [$timestamp] 执行: $task" -ForegroundColor Magenta
+        Write-Host "[$timestamp] EXEC: $task" -ForegroundColor Magenta
 
         claude -p "$task" `
             --dangerously-skip-permissions `
@@ -34,6 +48,7 @@ while ($true) {
         Start-Sleep -Seconds 10
     }
     else {
+        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] No tasks, sleeping 10min..." -ForegroundColor DarkGray
         Start-Sleep -Seconds 600
     }
 }
